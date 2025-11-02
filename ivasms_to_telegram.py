@@ -19,17 +19,34 @@ dp = Dispatcher()
 
 
 async def login_and_get_cookies(session: aiohttp.ClientSession):
-    """تسجيل الدخول في IVASMS"""
+    """تسجيل الدخول في IVASMS مع دعم CSRF"""
+    async with session.get(LOGIN_URL) as resp:
+        html = await resp.text()
+        soup = BeautifulSoup(html, "lxml")
+        token_input = soup.find("input", {"name": "_token"})
+        csrf_token = token_input["value"] if token_input else None
+
     data = {
         "email": IVASMS_EMAIL,
         "password": IVASMS_PASSWORD,
     }
-    async with session.post(LOGIN_URL, data=data) as resp:
-        if resp.status == 200:
+
+    if csrf_token:
+        data["_token"] = csrf_token
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Referer": LOGIN_URL,
+    }
+
+    async with session.post(LOGIN_URL, data=data, headers=headers) as resp:
+        text = await resp.text()
+        if "dashboard" in text.lower() or resp.url.path != "/portal/login":
             print("[✅] تم تسجيل الدخول بنجاح.")
             return session.cookie_jar
         else:
             print("[❌] فشل تسجيل الدخول!")
+            print("حالة:", resp.status)
             return None
 
 
