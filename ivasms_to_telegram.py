@@ -12,9 +12,7 @@ CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "10"))
 
 bot = Bot(token=BOT_TOKEN)
 
-# ---------------- تشغيل البوت ----------------
 async def fetch_messages(page):
-    """جلب الرسائل الجديدة من صفحة my_sms"""
     await page.goto("https://www.ivasms.com/portal/live/my_sms")
     await page.wait_for_timeout(3000)  # انتظر 3 ثواني لتكملة تحميل JS
 
@@ -41,23 +39,20 @@ async def main():
         await page.fill("input[name='email']", IVASMS_EMAIL)
         await page.fill("input[name='password']", IVASMS_PASSWORD)
         await page.click("button[type='submit']")
-        await page.wait_for_timeout(5000)  # انتظر 5 ثواني لتسجيل الدخول
+        await page.wait_for_timeout(5000)
 
         print("[✅] تم تسجيل الدخول بنجاح إلى IVASMS")
 
         while True:
             try:
                 messages = await fetch_messages(page)
-
                 for sender, msg in messages:
                     if msg not in last_messages:
                         text = f"📩 رسالة جديدة\n👤 المرسل: {sender}\n💬 المحتوى:\n`{msg}`"
                         await bot.send_message(GROUP_ID, text, parse_mode="Markdown")
                         print("[📨] رسالة جديدة أُرسلت:", msg)
                         last_messages.add(msg)
-
                 await asyncio.sleep(CHECK_INTERVAL)
-
             except Exception as e:
                 print("[⚠️] خطأ:", e)
                 await asyncio.sleep(5)
